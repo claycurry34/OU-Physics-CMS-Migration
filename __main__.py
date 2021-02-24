@@ -1,5 +1,5 @@
 import os
-from Physics.SiteTools import *
+from SiteTools import *
 #from Physics.SiteTools import expandDir, filterHTML
 
 os.chdir("Physics/www.nhn.ou.edu")
@@ -19,6 +19,3 @@ print("Discovered " +
 confirmWorking()
 os.chdir("..")
 print(href_IsWorking_map, file=open("hrefs.txt", "a"))
-
-
-git config --global alias.lllog 'log --all --graph --pretty='\''%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%ad) %C(bold blue)<%an>%Creset'\'' --date=short'
