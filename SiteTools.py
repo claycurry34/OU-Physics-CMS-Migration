@@ -98,37 +98,49 @@ def get_file_to_hrefs_map():
     return file_to_hrefs_map
 # 4. Confirm whether the hrefs are working
 
-
-def stringify_http_redirect_history(http_redirect_history : List[str])->str:
-    response_code = re.compile("\\d+") # detects number in HTTP response
-    history = ""
-    if len(http_redirect_history) > 0:
-        for response in http_redirect_history:
-            try:
-                code = response_code.search(str(response))
-                history += code.group(0) + "->"
-            except:
-                pass
-    return history
-
-
-
 def get_site_status(href_item : str):
     # Perform HTTP request (print -1 for exception)
     try:
         r = requests.get(href_item, headers={
             'Upgrade-Insecure-Requests': '1',
             'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.182 Safari/537.36"})
-        href_IsWorking_map[href_item] = r.status_code, r.history  # Assign HTTP response to isWorking map
-    except:  # Assign HTTP response to isWorking map
-        href_IsWorking_map[href_item] = -1, [""]  # Assign -1 as HTTP response to isWorking map if error occurs
+    except:
+        href_IsWorking_map[href_item] = "Bad", "Bad"
+        return
+    if len(r.history) > 0:
+        response_code = re.compile("\\d+")
+        history = []
+        for response in r.history:
+            try:
+                code = response_code.search(str(response))
+                history.append(int(code.group(0)))
+            except:
+                pass
+        status = ""
+        if any(x < 0 for x in history):
+            status += "<0 "
+        if any(x >= 0 and x < 100 for x in history):
+            status += "0-99 "
+        if any(x >=100 and x<200 for x in history):
+            status += "100-199 "
+        if any(x >=200 and x<300 for x in history):
+            status += "200-299 "
+        if any(x >=300 and x<400 for x in history):
+            status += "300-399 "
+        if any(x >=400 and x<500 for x in history):
+            status += "400-499 "
+        if any(x >= 500 for x in history):
+            status += ">500 "
+        href_IsWorking_map[href_item] = r.status_code,status
+    else:
+        href_IsWorking_map[href_item] = r.status_code, ""  # Assign -1 as HTTP response to isWorking map if error occurs
 
 
 def print_status_by_site():
     print("\n Checking site status codes")
     ct = 0
     sitesChecked = 0
-    print("file, href, status history, exit status", file=open("hrefs.csv", "w")) # initialize top line of CSV file
+    print("file, href, status, exit status", file=open("nhn-external-links.csv", "w")) # initialize top line of CSV file
     for file in file_to_hrefs_map:
         for href_item in file_to_hrefs_map[file]:
             if href_IsWorking_map[href_item] == None:
@@ -141,10 +153,10 @@ def print_status_by_site():
                         round(100 * sitesChecked / len(href_IsWorking_map), 3)) + "%")  # Progress indicator
 
             (http_exit_number, history) = href_IsWorking_map.get(href_item)
-            history = stringify_http_redirect_history(history)
-
-            print(file + ", " + href_item + ", " + history + ", " + str(http_exit_number), file=open("hrefs.csv", "a"))
+            print(file + ", " + href_item + ", " + str(history) + ", " + str(http_exit_number), file=open("nhn-external-links.csv", "a"))
     return
+
+
 def stringify_sites(href_item : str):
     response = ""
     for site in href_to_files_map:
